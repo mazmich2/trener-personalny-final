@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Generator Planu Treningowego</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <button onclick="toggleDarkMode()" class="dark-mode-toggle">🌙</button>
+
+    <div class="container">
+        <h1>Generator Planu Treningowego</h1>
+
+        <div class="form-container">
+            <form method="post">
+                <div class="form-columns">
+                    <div class="form-column">
+                        <label for="imie">Imię:</label>
+                        <input type="text" id="imie" name="imie" placeholder="Twoje imię" value="{{ request.form.get('imie', '') }}" required>
+
+                        <label for="wiek">Wiek:</label>
+                        <input type="number" id="wiek" name="wiek" min="10" max="100" required value="{{ request.form.get('wiek', '') }}">
+
+                        <label for="waga">Waga (kg):</label>
+                        <input type="number" id="waga" name="waga" min="30" max="200" step="0.1" required value="{{ request.form.get('waga', '') }}">
+
+                        <label for="wzrost">Wzrost (cm):</label>
+                        <input type="number" id="wzrost" name="wzrost" min="100" max="250" required value="{{ request.form.get('wzrost', '') }}">
+                    </div>
+
+                    <div class="form-column">
+                        <label for="plec">Płeć:</label>
+                        <select id="plec" name="plec" required>
+                            <option value="mężczyzna" {% if request.form.get('plec') == 'mężczyzna' %}selected{% endif %}>Mężczyzna</option>
+                            <option value="kobieta" {% if request.form.get('plec') == 'kobieta' %}selected{% endif %}>Kobieta</option>
+                        </select>
+
+                        <label for="poziom">Poziom zaawansowania:</label>
+                        <select id="poziom" name="poziom" required>
+                            <option value="początkujący" {% if request.form.get('poziom') == 'początkujący' %}selected{% endif %}>Początkujący</option>
+                            <option value="średniozaawansowany" {% if request.form.get('poziom') == 'średniozaawansowany' %}selected{% endif %}>Średniozaawansowany</option>
+                            <option value="zaawansowany" {% if request.form.get('poziom') == 'zaawansowany' %}selected{% endif %}>Zaawansowany</option>
+                        </select>
+
+                        <label for="dni">Ilość dni treningowych:</label>
+                        <select id="dni" name="dni" required>
+                            <option value="3" {% if request.form.get('dni') == '3' %}selected{% endif %}>3 dni</option>
+                            <option value="4" {% if request.form.get('dni') == '4' %}selected{% endif %}>4 dni</option>
+                            <option value="5" {% if request.form.get('dni') == '5' %}selected{% endif %}>5 dni</option>
+                            <option value="6" {% if request.form.get('dni') == '6' %}selected{% endif %}>6 dni</option>
+                            <option value="7" {% if request.form.get('dni') == '7' %}selected{% endif %}>7 dni</option>
+                        </select>
+
+                        <label for="czas">Czas treningu (min):</label>
+                        <input type="number" id="czas" name="czas" min="20" max="180" required value="{{ request.form.get('czas', '60') }}">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label for="sprzet">Dostępny sprzęt:</label>
+                    <textarea id="sprzet" name="sprzet" rows="2" required>{{ request.form.get('sprzet', 'Własna waga ciała, hantle, mata do ćwiczeń') }}</textarea>
+                </div>
+
+                <div class="form-row">
+                    <label for="kontuzje">Kontuzje / ograniczenia:</label>
+                    <input type="text" id="kontuzje" name="kontuzje" placeholder="np. kontuzja kolana, ból pleców..." value="{{ request.form.get('kontuzje', '') }}">
+                </div>
+
+                <div class="form-row">
+                    <label for="preferencje">Preferencje treningowe:</label>
+                    <input type="text" id="preferencje" name="preferencje" placeholder="np. nie lubię biegać, wolę ćwiczenia z hantlami..." value="{{ request.form.get('preferencje', '') }}">
+                </div>
+
+                <button type="submit" class="btn-generate">Wygeneruj plan</button>
+            </form>
+        </div>
+
+        {% if plan_treningowy %}
+        <div class="plan-treningowy">
+            <h2>Twój Plan Treningowy</h2>
+            <p class="generation-time">Wygenerowano: {{ now }}</p>
+            
+            <div class="training-plan-content">
+                {{ plan_treningowy|safe }}
+            </div>
+            
+            <div class="action-buttons">
+                <form method="POST">
+                    <input type="hidden" name="regen" value="true">
+                    <input type="hidden" name="imie" value="{{ imie }}">
+                    <input type="hidden" name="wiek" value="{{ wiek }}">
+                    <input type="hidden" name="plec" value="{{ plec }}">
+                    <input type="hidden" name="waga" value="{{ waga }}">
+                    <input type="hidden" name="wzrost" value="{{ wzrost }}">
+                    <input type="hidden" name="poziom" value="{{ poziom }}">
+                    <input type="hidden" name="dni" value="{{ dni }}">
+                    <input type="hidden" name="czas" value="{{ czas }}">
+                    <input type="hidden" name="sprzet" value="{{ sprzet }}">
+                    <input type="hidden" name="kontuzje" value="{{ kontuzje }}">
+                    <input type="hidden" name="preferencje" value="{{ preferencje }}">
+                    <button type="submit" class="btn-regen">🔁 Wygeneruj inny wariant</button>
+                </form>
+                
+                <form method="POST" action="{{ url_for('download_pdf') }}">
+                    <input type="hidden" name="plan_html" value="{{ plan_treningowy }}">
+                    <button type="submit" class="btn-download">⬇️ Pobierz jako PDF</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="chatbot-container">
+        <button class="chatbot-toggle">
+            <span class="chatbot-icon">💬</span>
+        </button>
+        <div class="chatbot-window">
+            <div class="chatbot-header">
+                <h3>Trener Max</h3>
+                <button class="chatbot-close">×</button>
+            </div>
+            <div class="chatbot-messages"></div>
+            <div class="chatbot-input">
+                <input type="text" placeholder="Zadaj pytanie trenerowi...">
+                <button class="chatbot-send">Wyślij</button>
+            </div>
+            <div class="typing-indicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+
+            // Chatbot functionality
+            const chatbotToggle = document.querySelector('.chatbot-toggle');
+            const chatbotWindow = document.querySelector('.chatbot-window');
+            const chatbotClose = document.querySelector('.chatbot-close');
+            const chatbotInput = document.querySelector('.chatbot-input input');
+            const chatbotSend = document.querySelector('.chatbot-send');
+            const chatbotMessages = document.querySelector('.chatbot-messages');
+            
+            chatbotToggle.addEventListener('click', () => {
+                chatbotWindow.style.display = 'flex';
+            });
+            
+            chatbotClose.addEventListener('click', () => {
+                chatbotWindow.style.display = 'none';
+            });
+            
+            function addMessage(text, isUser) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+                messageDiv.textContent = text;
+                chatbotMessages.appendChild(messageDiv);
+                chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+            }
+            
+            async function sendMessage() {
+                const message = chatbotInput.value.trim();
+                if (!message) return;
+                
+                addMessage(message, true);
+                chatbotInput.value = '';
+                
+                // Show typing indicator
+                document.querySelector('.typing-indicator').style.display = 'flex';
+                
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message: message }),
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    
+                    const data = await response.json();
+                    // Hide typing indicator before showing message
+                    document.querySelector('.typing-indicator').style.display = 'none';
+                    
+                    if (data.response) {
+                        addMessage(data.response, false);
+                    } else if (data.error) {
+                        addMessage('Przepraszam, wystąpił błąd: ' + data.error, false);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    document.querySelector('.typing-indicator').style.display = 'none';
+                    addMessage('Przepraszam, nie mogę teraz odpowiedzieć. Spróbuj później.', false);
+                }
+            }
+            
+            chatbotSend.addEventListener('click', sendMessage);
+            chatbotInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // Add welcome message
+            addMessage("Cześć! Jestem Max, Twój wirtualny trener. Jak mogę Ci pomóc?", false);
+        });
+    </script>
+</body>
+</html>
